@@ -4,6 +4,7 @@
 #include "cinder/app/App.h"
 #include "cinder/app/RendererGl.h"
 #include "cinder/gl/gl.h"
+#include "cinder/gl/wrapper.h"
 #include "cinder/gl/Vbo.h"
 #include "cinder/Utilities.h"
 
@@ -99,32 +100,32 @@ namespace mt {
     }
     
     void drawCoordinate( float length=100 ){
-//        glBegin( GL_LINES ); {
-//            glColor3f( 1, 0, 0 );
-//            glVertex3f( 0, 0, 0 );
-//            glVertex3f( length, 0, 0 );
-//            glColor3f( 0, 1, 0 );
-//            glVertex3f( 0, 0, 0 );
-//            glVertex3f( 0, length, 0 );
-//            glColor3f(  0, 0, 1 );
-//            glVertex3f( 0, 0, 0 );
-//            glVertex3f( 0, 0, length );
-//        } glEnd();
+        gl::begin( GL_LINES ); {
+            gl::color( 1, 0, 0 );
+            gl::vertex( 0, 0, 0 );
+            gl::vertex( length, 0, 0 );
+            gl::color( 0, 1, 0 );
+            gl::vertex( 0, 0, 0 );
+            gl::vertex( 0, length, 0 );
+            gl::color(  0, 0, 1 );
+            gl::vertex( 0, 0, 0 );
+            gl::vertex( 0, 0, length );
+        } gl::end();
     }
   
     void drawScreenGuide(){
-//        float w = getWindowWidth();
-//        float h = getWindowHeight();
-//        gl::pushMatrices();
-//        gl::setMatricesWindow( getWindowSize() );
-//        glBegin( GL_LINES ); {
-//            glColor3f( 1,1,1 );
-//            glVertex3f( w*0.5, 0, 0 );
-//            glVertex3f( w*0.5, h, 0 );
-//            glVertex3f( 0, h*0.5, 0 );
-//            glVertex3f( w, h*0.5, 0 );
-//        } glEnd();
-//        gl::popMatrices();
+        float w = getWindowWidth();
+        float h = getWindowHeight();
+        gl::pushMatrices();
+        gl::setMatricesWindow( getWindowSize() );
+        gl::begin( GL_LINES ); {
+            gl::color( 1,1,1 );
+            gl::vertex( w*0.5, 0, 0 );
+            gl::vertex( w*0.5, h, 0 );
+            gl::vertex( 0, h*0.5, 0 );
+            gl::vertex( w, h*0.5, 0 );
+        } gl::end();
+        gl::popMatrices();
     }
 
     void loadColorSample( string fileName, vector<vector<Colorf>>& col){

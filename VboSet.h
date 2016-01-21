@@ -1,6 +1,6 @@
 #pragma once
 
-#include "cinder/app/AppNative.h"
+#include "cinder/app/App.h"
 #include "cinder/gl/Vbo.h"
 
 using namespace ci;
@@ -26,81 +26,65 @@ using namespace std;
 class VboSet{
 
 private:
-    bool bNeedUpdatePos = false;
-    bool bNeedUpdateCol = false;
-    bool bNeedUpdateInd = false;
-    
-    vector<Vec3f>       pos;
+    vector<vec3>       pos;
     vector<ColorAf>     col;
     vector<uint32_t>    ind;
 
+    gl::BatchRef	mPointsBatch;
+    
 public:
     
     gl::VboMeshRef      vbo;
-    gl::VboMesh::Layout lay;
+    gl::VboMesh::Layout play, clay, ilay;
 
-    inline void addPos( const Vec3f & p )   { pos.push_back( p ); bNeedUpdatePos=true; }
-    inline void addCol( const ColorAf & c ) { col.push_back( c ); bNeedUpdateCol=true; }
-    inline void addInd( const uint32_t i )  { ind.push_back( i ); bNeedUpdateInd=true; }
-    inline void addPos( const vector<Vec3f> & ps )   { pos.insert(pos.end(), ps.begin(), ps.end() ); bNeedUpdatePos=true; }
-    inline void addCol( const vector<ColorAf> & cs ) { col.insert(col.end(), cs.begin(), cs.end() ); bNeedUpdateCol=true; }
-    inline void addInd( const vector<uint32_t> &is ) { ind.insert(ind.end(), is.begin(), is.end() ); bNeedUpdateInd=true; }
+    inline void addPos( const vec3 & p )   { pos.push_back( p ); }
+    inline void addCol( const ColorAf & c ) { col.push_back( c ); }
+    inline void addInd( const uint32_t i )  { ind.push_back( i ); }
+    inline void addPos( const vector<vec3> & ps )   { pos.insert(pos.end(), ps.begin(), ps.end() );  }
+    inline void addCol( const vector<ColorAf> & cs ) { col.insert(col.end(), cs.begin(), cs.end() ); }
+    inline void addInd( const vector<uint32_t> &is ) { ind.insert(ind.end(), is.begin(), is.end() ); }
     
-    inline const vector<Vec3f>& getPos()    { return pos; };
+    inline const vector<vec3>& getPos()    { return pos; };
     inline const vector<ColorAf>& getCol()  { return col; };
     inline const vector<uint32_t>& getInd() { return ind; };
     
-    inline void writePos( int where, const Vec3f & p)    { pos[where] = p; bNeedUpdatePos=true; }
-    inline void writeCol( int where, const ColorAf & c)  { col[where] = c; bNeedUpdateCol=true; }
-    inline void writeInd( int where, const uint32_t & i) { ind[where] = i; bNeedUpdateInd=true; }
+    inline void writePos( int where, const vec3 & p)    { pos[where] = p; }
+    inline void writeCol( int where, const ColorAf & c)  { col[where] = c; }
+    inline void writeInd( int where, const uint32_t & i) { ind[where] = i; }
     
     void init( GLenum primitiveType, bool bStaticPos=true, bool bStaticCol=true ){
-        bStaticPos ? lay.setStaticPositions()   : lay.setDynamicPositions();
-        bStaticCol ? lay.setStaticColorsRGBA()  : lay.setDynamicColorsRGBA();
-        //bStaticInd ? lay.setStaticIndices()     : lay.setDynamicIndices();
-        lay.setStaticIndices();
-        vbo = gl::VboMesh::create( pos.size(), ind.size(), lay, primitiveType );
+        play.usage(bStaticPos?GL_STATIC_DRAW:GL_DYNAMIC_DRAW).attrib(geom::POSITION,3);
+        clay.usage(bStaticCol?GL_STATIC_DRAW:GL_DYNAMIC_DRAW).attrib(geom::COLOR,4);
+
+        vbo = gl::VboMesh::create( pos.size(), ind.size(), {play, clay, ilay} );
         updateVboPos();
         updateVboCol();
         updateVboInd();
     }
     
     void updateVboPos(){
-        if( bNeedUpdatePos && vbo ){
-            
-            if( lay.hasStaticPositions() ) {
-                vbo->bufferPositions( pos );
-            }else{
-                gl::VboMesh::VertexIter itr = vbo->mapVertexBuffer();
-                for( int i=0; !itr.isDone()&&i<pos.size(); i++ ){
-                    itr.setPosition( pos[i] );
-                    ++itr;
-                }
+        if( vbo ){
+            auto itr = vbo->mapAttrib3f( geom::POSITION );
+            for( int i=0; i<pos.size(); i++ ){
+                *itr++ = pos[i];
             }
-            bNeedUpdatePos = false;
+            itr.unmap();
         }
     }
     
     void updateVboCol(){
-        if( bNeedUpdateCol && vbo ){
-            
-            if( lay.hasStaticColorsRGBA() ) {
-                vbo->bufferColorsRGBA( col );
-            }else{
-                gl::VboMesh::VertexIter itr = vbo->mapVertexBuffer();
-                for( int i=0; !itr.isDone()&&i<col.size(); i++ ){
-                    itr.setColorRGBA( col[i] );
-                    ++itr;
-                }
+        if( vbo ){
+            auto itr = vbo->mapAttrib4f( geom::COLOR);
+            for( int i=0; i<col.size(); i++ ){
+                *itr++ = col[i];
             }
-            bNeedUpdateCol = false;
+            itr.unmap();
         }
     }
     
     void updateVboInd(){
-        if( bNeedUpdateInd && vbo ){
-            vbo->bufferIndices( ind );
-            bNeedUpdateInd = false;
+        if( vbo ){
+            vbo->bufferIndices( ind.size(), &ind );
         }
     }
     
@@ -108,30 +92,35 @@ public:
         if(vbo) gl::draw( vbo );
     }
     
+    void drawShader(){
+        if(vbo){
+            if( !mPointsBatch ){
+                cout << "start making shader for VBO";
+                mPointsBatch = gl::Batch::create( vbo, gl::getStockShader( gl::ShaderDef().color() ) );
+                cout << " ... done" << endl;
+            }
+            mPointsBatch->draw();
+        }
+    }
+    
     // does not work
     void drawRange( int start, int end){
-        if(vbo) gl::drawRange( vbo, 0, ind.size(), start, end );
+        //if(vbo) gl::drawRange( vbo, 0, ind.size(), start, end );
     }
     
     void resetVbo(){
-        resetPos();
-        resetCol();
-        resetInd();
         vbo.reset();
     }
     
     void resetPos(){
         pos.clear();
-        bNeedUpdatePos = true;
     }
     
     void resetCol(){
         col.clear();
-        bNeedUpdateCol = true;
     }
     
     void resetInd(){
         ind.clear();
-        bNeedUpdateInd = true;
     }
 };
