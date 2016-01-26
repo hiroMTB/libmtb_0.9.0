@@ -83,7 +83,7 @@ public:
     }
     
     void updateVboInd(){
-        if( vbo ){
+        if( vbo && ind.size()!=0 ){
             vbo->bufferIndices( ind.size(), &ind );
         }
     }
