@@ -7,6 +7,7 @@
 #include "cinder/gl/wrapper.h"
 #include "cinder/gl/Vbo.h"
 #include "cinder/Utilities.h"
+#include "cinder/Xml.h"
 
 using namespace ci;
 using namespace ci::app;
@@ -16,7 +17,8 @@ typedef std::function<float (float)> EaseFunc;
 
 namespace mt {
     
-
+    fs::path assetDir;
+    
     long getSeed(){
         time_t curr;
         tm local;
@@ -53,14 +55,26 @@ namespace mt {
     }
     
     fs::path getAssetPath(){
-        return expandPath("../../../../../assets");
+        if( assetDir.string()=="" ){
+            fs::path p = expandPath("../../../_project_settings.xml");
+            XmlTree xml( loadFile(p) );
+            XmlTree ast = xml.getChild("project_settings").getChild("assetDir");
+            string st = ast.getValue<string>("error");
+            if( st == "error"){
+                printf( "Cant find assetDir, check you have _project_settings.xml\n" );
+            }else{
+                assetDir = st;
+                printf( "assetDir \"%s\"\n", st.c_str() );
+            }
+        }
+        return assetDir;
     }
     
     fs::path getRenderPath( string subdir_name="" ){
         if(subdir_name!="")
-            return expandPath("../../../../_rtmp") / getTimeStamp() / subdir_name ;
+            return expandPath("../../../_rtmp") / getTimeStamp() / subdir_name ;
         else
-            return expandPath("../../../../_rtmp") / getTimeStamp();
+            return expandPath("../../../_rtmp") / getTimeStamp();
     }
     
     fs::path getProjectPath(){
@@ -163,4 +177,39 @@ namespace mt {
         elapsedSec /= CLOCKS_PER_SEC;
         cout << "Elapsed time(sec) : "  <<  elapsedSec << endl;
     }
+    
+    void setMatricesWindow( int screenWidth, int screenHeight, bool center, bool ydown=true, float near=-10000.0f, float far=10000.0f ){
+        auto ctx = gl::context();
+        ctx->getModelMatrixStack().back() = mat4();
+        ctx->getViewMatrixStack().back() = mat4();
+        
+        // scale to screen coordinate -1.0 ~ 1.0
+        float sx = 2.0f / (float)screenWidth;
+        float sy = 2.0f / (float)screenHeight;
+        float sz = 2.0f / (far-near);
+
+        // translate
+        float tx = -1;
+        float ty = -1;
+        float tz = -(far+near)/(far-near); // move to mid position, (far+near)/2*sz
+        
+        if( center ){
+            sx *= 0.5;
+            sy *= 0.5;
+            tx = 0;
+            ty = 0;
+        }
+    
+        if( ydown ) {
+            sy *= -1;
+            ty *= -1;
+        }
+        
+        mat4 &m = ctx->getProjectionMatrixStack().back();
+        m = mat4( sx,  0,  0, 0,
+                   0, sy,  0, 0,
+                   0,  0, sz, 0,
+                  tx, ty, tz, 1 );
+    }
+
 }
