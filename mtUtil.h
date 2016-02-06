@@ -57,7 +57,7 @@ namespace mt {
     fs::path getAssetPath(){
         if( assetDir.string()=="" ){
             fs::path app = getAppPath();
-            XmlTree xml( loadFile(expandPath(app/"../../../../../_project_settings.xml")) );
+            XmlTree xml( loadFile(expandPath(app/"../../../_project_settings.xml")) );
             XmlTree ast = xml.getChild("project_settings").getChild("assetDir");
             string st = ast.getValue<string>("error");
             if( st == "error"){
@@ -73,9 +73,9 @@ namespace mt {
     fs::path getRenderPath( string subdir_name="" ){
          fs::path app = getAppPath();
         if(subdir_name!="")
-            return expandPath(app/"../../../../_rtmp") / getTimeStamp() / subdir_name ;
+            return expandPath(app/"../../../_rtmp") / getTimeStamp() / subdir_name ;
         else
-            return expandPath(app/"../../../../_rtmp") / getTimeStamp();
+            return expandPath(app/"../../../_rtmp") / getTimeStamp();
     }
     
     void saveString( string str, fs::path path ){

@@ -56,7 +56,7 @@ public:
         play.usage(bStaticPos?GL_STATIC_DRAW:GL_DYNAMIC_DRAW).attrib(geom::POSITION,3);
         clay.usage(bStaticCol?GL_STATIC_DRAW:GL_DYNAMIC_DRAW).attrib(geom::COLOR,4);
 
-        vbo = gl::VboMesh::create( pos.size(), primitiveType, {play, clay, ilay} );
+        vbo = gl::VboMesh::create( pos.size(), primitiveType, {play, clay} );
         updateVboPos();
         updateVboCol();
         updateVboInd();

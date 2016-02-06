@@ -26,7 +26,7 @@ public:
     
     void clear(){
         mFbo.reset();
-    }
+    }github
     
     void setup( int width, int height, int startFrame, int exitFrame, GLenum colorInternalFormat, fs::path path, int aaSample, string prefix="f_", bool aFlip=false ){
         bRender = false;
@@ -67,13 +67,13 @@ public:
         gl::setMatricesWindowPersp( w, h, fov, near, far, true );
     }
 
-    void beginOrtho(){
+    void beginOrtho( bool center=false){
         int w = mFbo->getWidth();
         int h = mFbo->getHeight();
         gl::pushMatrices();
-        gl::viewport( 0, 0, w, h );
+        glViewport( 0, 0, w, h );
         mFbo->bindFramebuffer();
-        gl::setMatricesWindow( w, h, true );
+        mt::setMatricesWindow( w, h, center, false, -1000.0f, 1000.0f);
     }
     
     void begin( const Camera & cam){
