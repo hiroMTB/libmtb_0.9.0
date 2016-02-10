@@ -205,4 +205,48 @@ namespace mt {
                   tx, ty, tz, 1 );
     }
 
+    void drawCube( float size ){
+        
+        size *= 0.5;
+        
+        gl::begin(GL_QUADS);
+        // Top face (y = size)
+        // Define vertices in counter-clockwise (CCW) order with normal pointing out
+        gl::vertex( size, size, -size);
+        gl::vertex(-size, size, -size);
+        gl::vertex(-size, size,  size);
+        gl::vertex( size, size,  size);
+        
+        // Bottom face (y = -size)
+        gl::vertex( size, -size,  size);
+        gl::vertex(-size, -size,  size);
+        gl::vertex(-size, -size, -size);
+        gl::vertex( size, -size, -size);
+        
+        // Front face  (z = size)
+        gl::vertex( size,  size, size);
+        gl::vertex(-size,  size, size);
+        gl::vertex(-size, -size, size);
+        gl::vertex( size, -size, size);
+        
+        // Back face (z = -size)
+        gl::vertex( size, -size, -size);
+        gl::vertex(-size, -size, -size);
+        gl::vertex(-size,  size, -size);
+        gl::vertex( size,  size, -size);
+        
+        // Left face (x = -size)
+        gl::vertex(-size,  size,  size);
+        gl::vertex(-size,  size, -size);
+        gl::vertex(-size, -size, -size);
+        gl::vertex(-size, -size,  size);
+        
+        // Right face (x = size)
+        gl::vertex(size,  size, -size);
+        gl::vertex(size,  size,  size);
+        gl::vertex(size, -size,  size);
+        gl::vertex(size, -size, -size);
+        gl::end();
+    }
+
 }

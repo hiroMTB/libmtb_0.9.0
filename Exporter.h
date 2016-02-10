@@ -25,8 +25,8 @@ public:
     Exporter(){}
     
     void clear(){
-        mFbo.reset();
-    }github
+        //mFbo->reset();
+    }
     
     void setup( int width, int height, int startFrame, int exitFrame, GLenum colorInternalFormat, fs::path path, int aaSample, string prefix="f_", bool aFlip=false ){
         bRender = false;

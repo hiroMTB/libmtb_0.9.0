@@ -1,8 +1,7 @@
 #pragma once
 
-#include "tbb/parallel_for.h"
-#include "tbb/blocked_range.h"
-#include "cinder/app/AppNative.h"
+#include "tbb/tbb.h"
+#include "cinder/app/App.h"
 #include "cinder/Perlin.h"
 
 using namespace tbb;
@@ -14,7 +13,7 @@ class TbbNpFinder{
     
 public:
     
-    void findNearestPoints( const Vec3f * input, Vec3f * output, const ColorAf * in_colors, ColorAf * out_colors, size_t n, int num_line, int num_dupl ){
+    void findNearestPoints( const vec3 * input, vec3 * output, const ColorAf * in_colors, ColorAf * out_colors, size_t n, int num_line, int num_dupl, float nLimit, float fLimit ){
         NearestPoints np;
         np.input = input;
         np.output = output;
@@ -24,83 +23,80 @@ public:
         np.total_size = n;
         np.num_line = num_line;
         np.num_dupl = num_dupl;
+        np.nLimit = nLimit;
+        np.fLimit = fLimit;
+        
         parallel_for( blocked_range<int>(0,n), np );
     }
     
 private:
     struct NearestPoints {
-        const Vec3f *input;
-        Vec3f *output;
+        const vec3 *input;
+        vec3 *output;
         const ColorAf * in_colors;
         ColorAf * out_colors;
         
         int total_size;
         int num_line;
         int num_dupl;
-        Perlin pln;
+        float nLimit;
+        float fLimit;
         
         // input = all point
         // output = all point * 10
         
         void operator()( const blocked_range<int>& range ) const {
             
-            multimap<float, Vec3f> near_p;
-            pair<float, Vec3f> pair1( 999999999999, Vec3f(-12345,0,0) );
+            multimap<float, vec3> near_p;
+            pair<float, vec3> pair1( std::numeric_limits<float>::max(), vec3(-12345,0,0) );
             
             for( int i=range.begin(); i!=range.end(); ++i ){
 
-                //if( randFloat() < 0.7 ) continue;
-
-                const Vec3f &pos1 = input[i];
+                const vec3 &pos1 = input[i];
                 
                 near_p.clear();
                 for( int line=0; line<num_line; line++ ){
                     near_p.insert( pair1 );
                 }
                 
-                float noise = pln.noise(i*0.001, pos1.x*0.01, pos1.y*0.01);
-                
-                //int try_num = 6000;
-                int try_num = total_size*0.3;
-                float fLimit = 5.0f + (noise*noise)*200;
-                float nLimit = 5;
+                int try_num = total_size;
 
                 for( int j=i+1; j<try_num; j++ ){
                     
                     int id2 = j;
                     if( i==id2 ) continue;
                     
-                    const Vec3f &pos2 = input[id2];
+                    const vec3 &pos2 = input[id2];
                     
                     float sat_dist = 2;
                     int sat_num = 0;
                     
-                    float dist = pos1.distance( pos2 );
+                    float dist = glm::distance( pos1, pos2 );
                     if( nLimit<dist && dist<fLimit ){
-                        multimap<float, Vec3f>::iterator itr = near_p.end();
+                        multimap<float, vec3>::iterator itr = near_p.end();
                         
                         itr--;
                         if( dist < itr->first ){
-                            std::pair<float, Vec3f> pair2( dist, pos2 );
+                            std::pair<float, vec3> pair2( dist, pos2 );
                             near_p.insert( pair2 );
                             
-                            multimap<float, Vec3f>::iterator end = near_p.end();
+                            multimap<float, vec3>::iterator end = near_p.end();
                             near_p.erase( --end );
                         }
                         
-                        if( dist < sat_dist ){
-                            if( ++sat_num >= num_line*2 ){
-                                break;
-                            }
-                        }
+//                        if( dist < sat_dist ){
+//                            if( ++sat_num >= num_line*2 ){
+//                                break;
+//                            }
+//                        }
                     }
                 }
                 
-                multimap<float, Vec3f>::iterator itr = near_p.begin();
+                multimap<float, vec3>::iterator itr = near_p.begin();
                 ColorAf c = in_colors[i];
                 for(int j=0; itr!=near_p.end(); itr++, j++ ){
                     
-                    Vec3f &p2 = itr->second;
+                    vec3 &p2 = itr->second;
 
                     if( p2.x != -12345){
                         int outid = i*num_line*num_dupl*2 + j*num_dupl*2;
@@ -112,8 +108,8 @@ private:
                         
                         for( int k=0; k<num_dupl-1; k++ ){
                             float rate = 1.2f;
-                            Vec3f r1( randFloat(), randFloat(), randFloat() );
-                            Vec3f r2( randFloat(), randFloat(), randFloat() );
+                            vec3 r1( randFloat(), randFloat(), randFloat() );
+                            vec3 r2( randFloat(), randFloat(), randFloat() );
                             
                             int did = outid + 2 + k*2;
                             output[ did ] = pos1 + r1*rate;
