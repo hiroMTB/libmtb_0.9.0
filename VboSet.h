@@ -89,7 +89,9 @@ public:
     }
     
     void draw(){
-        if(vbo) gl::draw( vbo );
+        if(vbo){
+            gl::draw( vbo );            
+        }
     }
     
     void drawShader(){

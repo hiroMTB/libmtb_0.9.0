@@ -67,13 +67,13 @@ public:
         gl::setMatricesWindowPersp( w, h, fov, near, far, true );
     }
 
-    void beginOrtho( bool center=false){
+    void beginOrtho( bool center=false, bool ydown=false){
         int w = mFbo->getWidth();
         int h = mFbo->getHeight();
         gl::pushMatrices();
         glViewport( 0, 0, w, h );
         mFbo->bindFramebuffer();
-        mt::setMatricesWindow( w, h, center, false, -1000.0f, 1000.0f);
+        mt::setMatricesWindow( w, h, center, ydown, -1000.0f, 1000.0f);
     }
     
     void begin( const Camera & cam){
@@ -141,14 +141,17 @@ public:
     void draw(){
         int w = getWindowWidth();
         int h = getWindowHeight();
-        
+
+        //int w = mFbo->getWidth();
+        //int h = mFbo->getHeight();
+
         gl::clear();
         gl::color(1, 1, 1);
         gl::pushMatrices();
         gl::setMatricesWindow( mFbo->getSize() );
         gl::viewport( 0,0,w,h );
         gl::draw( mFbo->getColorTexture() );
-        gl::popMatrices();
+        gl::popMatrices();        
     }
 };
 
