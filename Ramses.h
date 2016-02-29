@@ -57,11 +57,11 @@ public:
             printf( "arraySize %d, %e~%e\n\n", (int)vec.size(), vec[0], vec[vec.size()-1]);
         }
         
-        double Rmin = pR[0];
-        double Rmax = pR[pR.size()-1];
-        for( auto& p : pR ){
-            p = lmap(p, Rmin, Rmax, 0.0, 1.0 );
-        }
+//        double Rmin = pR[0];
+//        double Rmax = pR[pR.size()-1];
+//        for( auto& p : pR ){
+//            p = lmap(p, Rmin, Rmax, 0.0, 1.0 );
+//        }
         
         boxelx = pR.size();
         boxely = pTheta.size();
@@ -100,8 +100,12 @@ public:
         return true;
     }
     
-    void updateVbo(){
+    void updateVbo(int res){
         if(data.size()==0)return;
+        
+        float inRad = toRadians(inAngle);
+        float outRad = toRadians(outAngle);
+        
         
         if( bAutoMinMax ){
             in_min = numeric_limits<double>::max();
@@ -116,8 +120,8 @@ public:
         pos.clear();
         col.clear();
         
-        for( int j=0; j<boxely; j+=2 ){
-            for( int i=0; i<boxelx; i+=2 ){
+        for( int j=0; j<boxely; j+=res ){
+            for( int i=0; i<boxelx; i+=res ){
                 
                 int index = j + i*boxely;
                 
@@ -130,19 +134,22 @@ public:
                     if( bPolar ){
                         double r = pR[i];
                         double theta = pTheta[j];
-                        double x = r * cos( theta );
-                        double y = r * sin( theta );
-
-                        //rho_map -= in_min;
-                        //pos.push_back( vec3( x*scale+xoffset, y*scale+yoffset, rho_map*extrude + zoffset) * globalScale );
-                        pos.push_back( vec3( x, y, rho_map) );
+                        
+                        if( inRad<=theta&&theta<=outRad){
+                            
+                            double x = r * cos( theta );
+                            double y = r * sin( theta );
+                            
+                            rho_map -= visible_thresh;
+                            pos.push_back( vec3( x, y, rho_map) );
+                            ColorAf color(CM_HSV, hue, 0.8f, 0.7f);
+                            col.push_back( color );
+                        }
                     }else{
                         pos.push_back( vec3(i, j, rho_map));
-                    }
-                    
-                    ColorAf color(CM_HSV, hue, 0.8f, 0.7f);
-                    //ColorAf color(0.8f, 0.8f, 0.8f, 0.7f);
-                    col.push_back( color );
+                        ColorAf color(CM_HSV, hue, 0.8f, 0.7f);
+                        col.push_back( color );
+                    }                    
                 }
             }
         }
@@ -214,6 +221,8 @@ public:
     float visible_thresh;
     float visible_rate;
     int arraySize;
+    
+    float inAngle, outAngle;
     
     gl::VboMeshRef vbo;
     

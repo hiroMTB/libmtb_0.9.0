@@ -57,6 +57,14 @@ public:
         ss << "renderPath " << mRenderPath;
         cout << ss.str() << endl;
     }
+
+    void bind(){
+        int w = mFbo->getWidth();
+        int h = mFbo->getHeight();
+        gl::pushMatrices();
+        gl::viewport( 0, 0, w, h );
+        mFbo->bindFramebuffer();        
+    }
     
     void beginPersp( float fov=60.0f, float near=1.0f, float far=10000.0f){
         int w = mFbo->getWidth();
