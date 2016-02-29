@@ -8,6 +8,7 @@
 #include "cinder/gl/Vbo.h"
 #include "cinder/Utilities.h"
 #include "cinder/Xml.h"
+#include "cinder/Camera.h"
 
 using namespace ci;
 using namespace ci::app;
@@ -249,4 +250,28 @@ namespace mt {
         gl::end();
     }
 
+    void printCamera( const CameraPersp & c ){
+        
+        float n = c.getNearClip();
+        float f = c.getFarClip();
+        float a = c.getAspectRatio();
+        float fov = c.getFov();
+        vec3 e = c.getEyePoint();
+        vec3 u = c.getWorldUp();
+        vec2 s = c.getLensShift();
+        vec3 d = c.getViewDirection();
+        //float dis = c.getPivotDistance();
+        
+        printf("\n");
+        printf( "cam.setNearClip(%f);\n", n);
+        printf( "cam.setFarClip(%f);\n", f);
+        printf( "cam.setAspectRatio(%f);\n", a);
+        printf( "cam.setFov(%f);\n", fov);
+        printf( "cam.setEyePoint(vec3(%f,%f,%f));\n", e.x,e.y,e.z);
+        printf( "cam.setWorldUp(vec3(%f,%f,%f));\n", u.x,u.y,u.z);
+        printf( "cam.setLensShift(vec2(%f,%f));\n", s.x,s.y);
+        printf( "cam.setViewDirection(vec3(%f,%f,%f));\n", d.x, d.y, d.z);
+        //printf( "cam.setPivotDistance(%f);\n", dis);
+        printf( "cam.lookAt(vec3(%f,%f,%f)+vec3(%f,%f,%f));\n)", e.x,e.y,e.z, d.x,d.y,d.z );
+    }
 }

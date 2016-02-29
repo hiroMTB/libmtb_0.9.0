@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include "mtUtil.h"
+#include "cinder/Perlin.h"
 
 using namespace ci;
 using namespace ci::app;
@@ -25,9 +26,19 @@ public:
         visible_thresh = 0.1f;
         eStretch = 1;
         xoffset = yoffset = zoffset = 0;
+        inAngle = -180;
+        outAngle = 180;
+        rotateSpeed = 0.0f;
+        offsetRotateAngle = 0.0f;
         loadPlotData();
+        
+        
+        mPln.setSeed(12345);
+        mPln.setOctaves(4);
+        
     }
 
+    Perlin mPln;
     
     void loadPlotData(){
         if( pR.size() != 0) return;
@@ -67,7 +78,9 @@ public:
         boxely = pTheta.size();
     }
     
-    bool loadSimData( int frame ){
+    bool loadSimData( int _frame ){
+        
+        frame = _frame;
         
         if( frame>endFrame[eSimType]){
             return false;
@@ -86,26 +99,72 @@ public:
         }
         
         // get length of file:
-        is.seekg (0, is.end);
+        is.seekg ( 0, is.end );
         int fileSize = is.tellg();
-        is.seekg (0, is.beg);
+        is.seekg ( 0, is.beg );
         
         arraySize = arraySize = fileSize / sizeof(double);
 
         //data.clear();
         if(data.size()==0)
             data.assign(arraySize, double(0));
-        is.read(reinterpret_cast<char*>(&data[0]), fileSize);
+        is.read( reinterpret_cast<char*>(&data[0]), fileSize );
         is.close();
         return true;
     }
     
-    void updateVbo(int res){
-        if(data.size()==0)return;
+    
+    void move(){
+        
+        
+        {
+            auto itr = vbo->mapAttrib3f( geom::POSITION );
+            for( int i=0; i<pos.size(); i++ ){
+                
+                
+                {
+                    float val = filData[i];
+                    val *= 10.0f;
+                    vec2 n2 = mPln.dfBm(i*0.7f, val);
+                    float n = n2.x+n2.y;
+                    float vel = (n>0)?abs(val):-abs(val);
+                    pos[i].z += vel;
+                }
+                
+                vec3 p = pos[i];
+
+                if(bPolar){
+                    p.x = p.x*scale+xoffset;
+                    p.y = p.y*scale+yoffset;
+                    p.z = p.z*extrude + zoffset;
+                }else{
+                    p.x = p.x + xoffset;
+                    p.y = p.y + yoffset;
+                    p.z = p.z * extrude + zoffset;
+                }
+                
+                p *= globalScale;
+                
+                
+
+                
+                *itr++ = p;
+            }
+            itr.unmap();
+        }
+
+        {
+            auto itr = vbo->mapAttrib4f( geom::COLOR);
+            for( int i=0; i<col.size(); i++ ){ *itr++ = col[i];}
+            itr.unmap();
+        }
+    }
+    
+    void updateVbo( int res ){
+        if( data.size()==0 ) return;
         
         float inRad = toRadians(inAngle);
         float outRad = toRadians(outAngle);
-        
         
         if( bAutoMinMax ){
             in_min = numeric_limits<double>::max();
@@ -119,6 +178,7 @@ public:
         
         pos.clear();
         col.clear();
+        filData.clear();
         
         for( int j=0; j<boxely; j+=res ){
             for( int i=0; i<boxelx; i+=res ){
@@ -130,6 +190,9 @@ public:
                 
                 //if( visible_thresh<rho_map && rho_map <1.00 ){
                 if( 0.0<rho_map && rho_map <=1.00 ){
+                    
+                    filData.push_back(rho_map);
+                    
                     float hue = lmap( rho_map, visible_thresh, 1.0f, 0.83f, 0.0f);
                     if( bPolar ){
                         double r = pR[i];
@@ -141,7 +204,10 @@ public:
                             double y = r * sin( theta );
                             
                             rho_map -= visible_thresh;
-                            pos.push_back( vec3( x, y, rho_map) );
+                            vec3 p = vec3( x, y, rho_map);
+                            float angle = offsetRotateAngle + rotateSpeed*frame;
+                            p = glm::rotateZ( p, toRadians(angle) );
+                            pos.push_back( p  );
                             ColorAf color(CM_HSV, hue, 0.8f, 0.7f);
                             col.push_back( color );
                         }
@@ -199,10 +265,13 @@ public:
     }
 
     vector<double> data;
+    
     vector<vec3> pos;
     vector<ColorAf> col;
+    vector<float> filData;
     
     
+    int frame;
     bool bShow;
     bool bAutoMinMax;
     bool bPolar;
@@ -223,6 +292,8 @@ public:
     int arraySize;
     
     float inAngle, outAngle;
+    float rotateSpeed;
+    float offsetRotateAngle;
     
     gl::VboMeshRef vbo;
     
