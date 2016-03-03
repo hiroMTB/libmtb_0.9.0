@@ -115,20 +115,18 @@ public:
     
     
     void move(){
-        
-        
         {
             auto itr = vbo->mapAttrib3f( geom::POSITION );
             for( int i=0; i<pos.size(); i++ ){
                 
-                
                 {
                     float val = filData[i];
-                    val *= 10.0f;
-                    vec2 n2 = mPln.dfBm(i*0.7f, val);
-                    float n = n2.x+n2.y;
-                    float vel = (n>0)?abs(val):-abs(val);
-                    pos[i].z += vel;
+                    val = pow(val,5.0f);
+                    val = max(0.1f, val);
+                    vec2 n2 = mPln.dfBm(0.1+i*0.01f, 0.1+val*0.01);
+                    float n = n2.x + n2.y;
+                    float vel = (n>0)?-abs(val):abs(val);
+                    pos[i].z += vel*0.01*0.25;
                 }
                 
                 vec3 p = pos[i];
@@ -144,10 +142,6 @@ public:
                 }
                 
                 p *= globalScale;
-                
-                
-
-                
                 *itr++ = p;
             }
             itr.unmap();
@@ -205,7 +199,7 @@ public:
                             
                             rho_map -= visible_thresh;
                             vec3 p = vec3( x, y, rho_map);
-                            float angle = offsetRotateAngle + rotateSpeed*frame;
+                            float angle = offsetRotateAngle + rotateSpeed*(frame-100);
                             p = glm::rotateZ( p, toRadians(angle) );
                             pos.push_back( p  );
                             ColorAf color(CM_HSV, hue, 0.8f, 0.7f);
