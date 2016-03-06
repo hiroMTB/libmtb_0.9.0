@@ -109,7 +109,14 @@ public:
     void drawRange( int start, int end){
         //if(vbo) gl::drawRange( vbo, 0, ind.size(), start, end );
     }
-    
+
+    void resetAll(){
+        pos.clear();
+        col.clear();
+        ind.clear();
+        vbo.reset();
+    }
+
     void resetVbo(){
         vbo.reset();
     }

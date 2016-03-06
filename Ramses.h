@@ -8,6 +8,16 @@
 using namespace ci;
 using namespace ci::app;
 
+class Particle{
+
+public:
+    vec3 pos;
+    ColorAf col;
+    float dist;
+    float rho_map;
+    double raw;
+};
+
 class Ramses{
     
 public:
@@ -30,8 +40,7 @@ public:
         outAngle = 180;
         rotateSpeed = 0.0f;
         offsetRotateAngle = 0.0f;
-        loadPlotData();
-        
+        loadPlotData();        
         
         mPln.setSeed(12345);
         mPln.setOctaves(4);
@@ -113,48 +122,47 @@ public:
         return true;
     }
     
+//    void move(){
+//        {
+//            auto itr = vbo->mapAttrib3f( geom::POSITION );
+//            for( int i=0; i<pos.size(); i++ ){
+//                
+//                {
+//                    float val = filData[i];
+//                    val = pow(val,5.0f);
+//                    val = max(0.1f, val);
+//                    vec2 n2 = mPln.dfBm(0.1+i*0.01f, 0.1+val*0.01);
+//                    float n = n2.x + n2.y;
+//                    float vel = (n>0)?-abs(val):abs(val);
+//                    pos[i].z += vel*0.01*0.25;
+//                }
+//                
+//                vec3 p = pos[i];
+//
+//                if(bPolar){
+//                    p.x = p.x*scale+xoffset;
+//                    p.y = p.y*scale+yoffset;
+//                    p.z = p.z*extrude + zoffset;
+//                }else{
+//                    p.x = p.x + xoffset;
+//                    p.y = p.y + yoffset;
+//                    p.z = p.z * extrude + zoffset;
+//                }
+//                
+//                p *= globalScale;
+//                *itr++ = p;
+//            }
+//            itr.unmap();
+//        }
+//
+//        {
+//            auto itr = vbo->mapAttrib4f( geom::COLOR);
+//            for( int i=0; i<col.size(); i++ ){ *itr++ = col[i];}
+//            itr.unmap();
+//        }
+//    }
     
-    void move(){
-        {
-            auto itr = vbo->mapAttrib3f( geom::POSITION );
-            for( int i=0; i<pos.size(); i++ ){
-                
-                {
-                    float val = filData[i];
-                    val = pow(val,5.0f);
-                    val = max(0.1f, val);
-                    vec2 n2 = mPln.dfBm(0.1+i*0.01f, 0.1+val*0.01);
-                    float n = n2.x + n2.y;
-                    float vel = (n>0)?-abs(val):abs(val);
-                    pos[i].z += vel*0.01*0.25;
-                }
-                
-                vec3 p = pos[i];
-
-                if(bPolar){
-                    p.x = p.x*scale+xoffset;
-                    p.y = p.y*scale+yoffset;
-                    p.z = p.z*extrude + zoffset;
-                }else{
-                    p.x = p.x + xoffset;
-                    p.y = p.y + yoffset;
-                    p.z = p.z * extrude + zoffset;
-                }
-                
-                p *= globalScale;
-                *itr++ = p;
-            }
-            itr.unmap();
-        }
-
-        {
-            auto itr = vbo->mapAttrib4f( geom::COLOR);
-            for( int i=0; i<col.size(); i++ ){ *itr++ = col[i];}
-            itr.unmap();
-        }
-    }
-    
-    void updateVbo( int res ){
+    void updateVbo( int res, const vec3 & eye ){
         if( data.size()==0 ) return;
         
         float inRad = toRadians(inAngle);
@@ -170,8 +178,7 @@ public:
             }
         }
         
-        pos.clear();
-        col.clear();
+        part.clear();
         filData.clear();
         
         for( int j=0; j<boxely; j+=res ){
@@ -201,30 +208,54 @@ public:
                             vec3 p = vec3( x, y, rho_map);
                             float angle = offsetRotateAngle + rotateSpeed*(frame-100);
                             p = glm::rotateZ( p, toRadians(angle) );
-                            pos.push_back( p  );
-                            ColorAf color(CM_HSV, hue, 0.8f, 0.7f);
-                            col.push_back( color );
+                            
+                            Particle pt;
+                            pt.pos = p;
+                            pt.col = ColorAf(CM_HSV, hue, 0.8f, 0.7f);
+                            pt.rho_map = rho_map;
+                            pt.raw = rho_raw;
+                            
+                            vec3 tmp = p;
+                            tmp.x = p.x*scale+xoffset;
+                            tmp.y = p.y*scale+yoffset;
+                            tmp.z = p.z*extrude + zoffset;
+                            tmp *= globalScale;
+                            pt.dist = glm::distance(tmp, eye);
+                            part.push_back(pt);
                         }
                     }else{
-                        pos.push_back( vec3(i, j, rho_map));
-                        ColorAf color(CM_HSV, hue, 0.8f, 0.7f);
-                        col.push_back( color );
-                    }                    
+                        Particle pt;
+                        vec3 p(i, j, rho_map);
+                        pt.pos = p;
+                        pt.col = ColorAf(CM_HSV, hue, 0.8f, 0.7f);
+                        pt.rho_map = rho_map;
+                        pt.raw = rho_raw;
+                        vec3 tmp = p;
+                        tmp.x = p.x + xoffset;
+                        tmp.y = p.y + yoffset;
+                        tmp.z = p.z * extrude + zoffset;
+                        pt.dist = glm::distance(tmp, eye);
+                        part.push_back(pt);
+                    }
                 }
             }
         }
+        
+        // sort based on eye
+        std::sort(part.begin(), part.end(), [&eye](const Particle&lp, const Particle&rp){ return lp.dist > rp.dist;} );
+        
         
         gl::VboMesh::Layout play, clay;
         play.usage(GL_STATIC_DRAW).attrib(geom::POSITION,3);
         clay.usage(GL_STATIC_DRAW).attrib(geom::COLOR,4);
         
         vbo.reset();
-        vbo = gl::VboMesh::create( pos.size(), GL_POINTS, {play, clay} );
+        vbo = gl::VboMesh::create( part.size(), GL_POINTS, {play, clay} );
         {
             auto itr = vbo->mapAttrib3f( geom::POSITION );
-            for( int i=0; i<pos.size(); i++ ){
+            for( int i=0; i<part.size(); i++ ){
                 
-                vec3 p = pos[i];
+                vec3 p = part[i].pos;
                 if(bPolar){
                     p.x = p.x*scale+xoffset;
                     p.y = p.y*scale+yoffset;
@@ -242,7 +273,7 @@ public:
         }
         {
             auto itr = vbo->mapAttrib4f( geom::COLOR);
-            for( int i=0; i<col.size(); i++ ){ *itr++ = col[i];}
+            for( int i=0; i<part.size(); i++ ){ *itr++ = part[i].col;}
             itr.unmap();
         }
         
@@ -260,8 +291,7 @@ public:
 
     vector<double> data;
     
-    vector<vec3> pos;
-    vector<ColorAf> col;
+    vector<Particle> part;
     vector<float> filData;
     
     
